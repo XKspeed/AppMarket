@@ -30,6 +30,17 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      # ✅ 清理 local.properties 里残留的签名配置，避免 Gradle 误以为有 keystore
+      - name: Remove keystore config from local.properties
+        run: |
+          if [ -f local.properties ]; then
+            sed -i '/^KEYSTORE_/d; /^KEY_ALIAS/d; /^KEY_PASSWORD/d' local.properties
+            echo "已清理签名配置，剩余内容："
+            cat local.properties
+          else
+            echo "local.properties 不存在，跳过"
+          fi
+
       # ✅ 不传任何签名环境变量，Gradle 自动 fallback 到 debug 签名
       - name: Build Release APK
         run: |
