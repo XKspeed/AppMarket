@@ -33,6 +33,29 @@ jobs:
       - name: Decode Signing Key
         run: echo ${{ secrets.SIGNING_KEY }} | base64 -d > keystore.jks
 
+      # ✅ 新增：生成基准配置文件（让 ART 提前 AOT 编译热点代码）
+      - name: Generate Baseline Profile
+        run: |
+          # 只在存在 benchmark 模块时才生成，避免没有配置时 CI 失败
+          if [ -d "benchmark" ] || grep -q "macrobenchmark" settings.gradle* 2>/dev/null; then
+            ./gradlew :benchmark:connectedAndroidTest \
+              -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.enabledRules=BaselineProfile
+          else
+            echo "未找到 Macrobenchmark 模块，跳过基准配置文件生成"
+            echo "如需启用，请参考 https://developer.android.com/topic/performance/baselineprofiles"
+          fi
+
+      # ✅ 新增：确保 R8 优化规则生效（打包前校验）
+      - name: Verify R8 Optimization
+        run: |
+          echo "检查 release 构建类型是否启用 R8 优化..."
+          # 简单校验：确认存在 optimize 版规则文件引用
+          if grep -r "proguard-android-optimize.txt" app/android/build.gradle* app/build.gradle* 2>/dev/null; then
+            echo "✅ 已使用 proguard-android-optimize.txt，R8 深度优化已开启"
+          else
+            echo "⚠️ 警告：未检测到 proguard-android-optimize.txt，可能缺少 R8 优化"
+          fi
+
       - name: Build Release APK
         run: |
           ./gradlew :app:android:assembleRelease
