@@ -52,6 +52,7 @@ android {
     val keystorePwd = properties.getProperty("KEYSTORE_PASS") ?: System.getenv("KEYSTORE_PASS")
     val alias = properties.getProperty("KEY_ALIAS") ?: System.getenv("KEY_ALIAS")
     val pwd = properties.getProperty("KEY_PASSWORD") ?: System.getenv("KEY_PASSWORD")
+
     if (keystorePath != null) {
         signingConfigs {
             register("github") {
@@ -63,14 +64,8 @@ android {
                 enableV4Signing = true
             }
         }
-    } else {
-        signingConfigs {
-            register("release") {
-                enableV3Signing = true
-                enableV4Signing = true
-            }
-        }
     }
+    // 不再注册空的 release 签名配置
 
     buildTypes {
         release {
@@ -78,6 +73,7 @@ android {
             isShrinkResources = true
             vcsInfo.include = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules-android.pro")
+            // 有 keystore 用 github，没有用 debug 签名
             signingConfig = signingConfigs.getByName(if (keystorePath != null) "github" else "debug")
         }
         debug {
